@@ -1,0 +1,10 @@
+# 本地构建产物、IDE 配置及个人开发记录不提交。
+/target/
+/.idea/
+*.iml
+.DS_Store
+.env
+/src/main/resources/database.local.properties
+
+/作业要求.md
+/开发计划.md
