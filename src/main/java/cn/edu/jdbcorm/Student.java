@@ -4,13 +4,21 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /** 实体主键使用字符串，由调用方赋值。 */
+@Table("students")
 public class Student {
+    @Id @Column("id")
     private String id;
+    @Column("name")
     private String name;
+    @Column("major")
     private String major;
+    @Column("age")
     private Integer age;
+    @Column("enrollment_date")
     private LocalDate enrollmentDate;
+    @Column("graduated")
     private Boolean graduated;
+    @Column("tuition")
     private BigDecimal tuition;
 
     public Student() {}

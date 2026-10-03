@@ -4,9 +4,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /** 实体主键使用字符串，由调用方赋值。 */
+@Table("colleges")
 public class College {
+    @Id @Column("id")
     private String id;
+    @Column("name")
     private String name;
+    @Column("code")
     private String code;
 
     public College() {}
