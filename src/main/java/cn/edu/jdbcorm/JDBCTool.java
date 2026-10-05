@@ -47,6 +47,27 @@ public final class JDBCTool {
         }
     }
 
+    /** 保存全部映射字段，主键由调用方提供。 */
+    public static <T> int save(T obj, Connection connection) {
+        Objects.requireNonNull(obj, "obj");
+        EntityMetadata mapping = EntityMetadata.of(obj.getClass());
+        mapping.requiredId(obj);
+        String names = String.join(", ", mapping.columns.stream().map(EntityMetadata.Binding::sqlName).toList());
+        String placeholders = String.join(", ", java.util.Collections.nCopies(mapping.columns.size(), "?"));
+        String sql = "INSERT INTO " + mapping.table + " (" + names + ") VALUES (" + placeholders + ")";
+        return execute(sql, mapping.columns.stream().map(column -> column.read(obj)).toList(), connection);
+    }
+
+    private static int execute(String sql, List<Object> values, Connection connection) {
+        Objects.requireNonNull(connection, "connection");
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            for (int i = 0; i < values.size(); i++) statement.setObject(i + 1, values.get(i));
+            return statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new OrmException("Database operation failed: " + sql, e);
+        }
+    }
+
     private static Object convert(Object value, Class<?> type) {
         if (value == null) {
             if (type.isPrimitive()) throw new OrmException("SQL NULL cannot be assigned to a primitive field");
