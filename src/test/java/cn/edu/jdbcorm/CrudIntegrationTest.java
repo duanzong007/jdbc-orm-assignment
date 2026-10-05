@@ -56,4 +56,28 @@ class CrudIntegrationTest {
         student.setId(null);
         assertThrows(OrmException.class, () -> JDBCTool.save(student, connection));
     }
+
+    @Test void updatesOnlyTheRequestedStudentAndCollege() throws Exception {
+        Student target = student();
+        Student untouched = student();
+        College college = college();
+        College otherCollege = college();
+        JDBCTool.save(target, connection);
+        JDBCTool.save(untouched, connection);
+        JDBCTool.save(college, connection);
+        JDBCTool.save(otherCollege, connection);
+        target.setName("更新后的姓名");
+        target.setGraduated(true);
+        target.setTuition(new BigDecimal("7200.19"));
+        college.setName("计算机学院");
+        assertEquals(1, JDBCTool.update(target, connection));
+        assertEquals(1, JDBCTool.update(college, connection));
+        assertEquals(target.getName(), storedValue("students", "name", target.getId()));
+        assertEquals(true, storedValue("students", "graduated", target.getId()));
+        assertEquals(target.getTuition(), storedValue("students", "tuition", target.getId()));
+        assertEquals(untouched.getName(), storedValue("students", "name", untouched.getId()));
+        assertEquals(college.getName(), storedValue("colleges", "name", college.getId()));
+        assertEquals(otherCollege.getName(), storedValue("colleges", "name", otherCollege.getId()));
+        assertEquals(0, JDBCTool.update(student(), connection));
+    }
 }

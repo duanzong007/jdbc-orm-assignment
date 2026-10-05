@@ -58,6 +58,20 @@ public final class JDBCTool {
         return execute(sql, mapping.columns.stream().map(column -> column.read(obj)).toList(), connection);
     }
 
+    /** 根据主键更新其他字段，不修改主键本身。 */
+    public static <T> int update(T obj, Connection connection) {
+        Objects.requireNonNull(obj, "obj");
+        EntityMetadata mapping = EntityMetadata.of(obj.getClass());
+        Object id = mapping.requiredId(obj);
+        var columns = mapping.nonIdColumns();
+        if (columns.isEmpty()) throw new OrmException("实体没有可更新的字段");
+        String assignments = String.join(", ", columns.stream().map(column -> column.sqlName() + " = ?").toList());
+        List<Object> values = new ArrayList<>(columns.stream().map(column -> column.read(obj)).toList());
+        values.add(id);
+        return execute("UPDATE " + mapping.table + " SET " + assignments + " WHERE " + mapping.id.sqlName() + " = ?",
+                values, connection);
+    }
+
     private static int execute(String sql, List<Object> values, Connection connection) {
         Objects.requireNonNull(connection, "connection");
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
