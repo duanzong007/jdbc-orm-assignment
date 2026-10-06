@@ -80,4 +80,23 @@ class CrudIntegrationTest {
         assertEquals(otherCollege.getName(), storedValue("colleges", "name", otherCollege.getId()));
         assertEquals(0, JDBCTool.update(student(), connection));
     }
+
+    @Test void deletesOnlyRequestedRowsAndReturnsZeroForMissingRows() throws Exception {
+        Student target = student();
+        Student untouched = student();
+        College college = college();
+        College otherCollege = college();
+        JDBCTool.save(target, connection);
+        JDBCTool.save(untouched, connection);
+        JDBCTool.save(college, connection);
+        JDBCTool.save(otherCollege, connection);
+        assertEquals(1, JDBCTool.delete(target, connection));
+        assertEquals(1, JDBCTool.delete(college, connection));
+        assertNull(storedValue("students", "name", target.getId()));
+        assertNull(storedValue("colleges", "name", college.getId()));
+        assertEquals(untouched.getName(), storedValue("students", "name", untouched.getId()));
+        assertEquals(otherCollege.getName(), storedValue("colleges", "name", otherCollege.getId()));
+        assertEquals(0, JDBCTool.delete(target, connection));
+        assertEquals(0, JDBCTool.delete(college, connection));
+    }
 }

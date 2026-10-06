@@ -72,6 +72,15 @@ public final class JDBCTool {
                 values, connection);
     }
 
+    /** 根据主键删除一条记录，返回实际删除的行数。 */
+    public static <T> int delete(T obj, Connection connection) {
+        Objects.requireNonNull(obj, "obj");
+        EntityMetadata mapping = EntityMetadata.of(obj.getClass());
+        Object id = mapping.requiredId(obj);
+        return execute("DELETE FROM " + mapping.table + " WHERE " + mapping.id.sqlName() + " = ?",
+                List.of(id), connection);
+    }
+
     private static int execute(String sql, List<Object> values, Connection connection) {
         Objects.requireNonNull(connection, "connection");
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
