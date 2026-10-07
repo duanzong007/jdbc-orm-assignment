@@ -81,6 +81,28 @@ public final class JDBCTool {
                 List.of(id), connection);
     }
 
+    /** 按主键查询，记录不存在时返回 null。 */
+    public static <T> T getOneById(String id, Class<T> clazz, Connection connection) {
+        if (id == null || id.isBlank()) throw new OrmException("查询主键不能为空");
+        EntityMetadata mapping = EntityMetadata.of(clazz);
+        List<T> result = queryList("SELECT * FROM " + mapping.table + " WHERE " + mapping.id.sqlName() + " = ?",
+                clazz, connection, id);
+        return result.isEmpty() ? null : result.get(0);
+    }
+
+    /** 统一执行带参数的查询，并自动关闭内部创建的语句和结果集。 */
+    public static <T> List<T> queryList(String sql, Class<T> clazz, Connection connection, Object... parameters) {
+        Objects.requireNonNull(connection, "connection");
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            for (int i = 0; i < parameters.length; i++) statement.setObject(i + 1, parameters[i]);
+            try (ResultSet result = statement.executeQuery()) {
+                return resultSetToList(result, clazz);
+            }
+        } catch (SQLException e) {
+            throw new OrmException("数据库查询失败：" + sql, e);
+        }
+    }
+
     private static int execute(String sql, List<Object> values, Connection connection) {
         Objects.requireNonNull(connection, "connection");
         try (PreparedStatement statement = connection.prepareStatement(sql)) {

@@ -99,4 +99,31 @@ class CrudIntegrationTest {
         assertEquals(0, JDBCTool.delete(target, connection));
         assertEquals(0, JDBCTool.delete(college, connection));
     }
+
+    @Test void queriesBothTypesAndBindsIdsInsteadOfConcatenatingSql() {
+        Student student = student();
+        College college = college();
+        JDBCTool.save(student, connection);
+        JDBCTool.save(college, connection);
+        Student actual = JDBCTool.getOneById(student.getId(), Student.class, connection);
+        assertEquals(student.getName(), actual.getName());
+        assertEquals(student.getEnrollmentDate(), actual.getEnrollmentDate());
+        assertEquals(student.getTuition(), actual.getTuition());
+        assertEquals(college.getCode(), JDBCTool.getOneById(college.getId(), College.class, connection).getCode());
+        assertNull(JDBCTool.getOneById(student.getId() + "' OR '1'='1", Student.class, connection));
+        assertNull(JDBCTool.getOneById("absent-" + UUID.randomUUID(), College.class, connection));
+        assertThrows(OrmException.class, () -> JDBCTool.getOneById(" ", Student.class, connection));
+    }
+
+    @Test void leavesCommitAndRollbackToTheCaller() throws Exception {
+        Student student = student();
+        JDBCTool.save(student, connection);
+        assertNotNull(JDBCTool.getOneById(student.getId(), Student.class, connection));
+        try (var otherConnection = Database.connect()) {
+            assertNull(JDBCTool.getOneById(student.getId(), Student.class, otherConnection));
+        }
+        connection.rollback();
+        assertNull(JDBCTool.getOneById(student.getId(), Student.class, connection));
+        assertFalse(connection.isClosed());
+    }
 }
