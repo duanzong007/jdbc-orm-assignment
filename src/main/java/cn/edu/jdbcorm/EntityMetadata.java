@@ -24,13 +24,13 @@ final class EntityMetadata {
 
     private EntityMetadata(Class<?> type) {
         Table annotation = type.getAnnotation(Table.class);
-        if (annotation == null) throw new OrmException("Missing @Table: " + type.getName());
+        if (annotation == null) throw new OrmException("实体缺少 @Table 注解：" + type.getName());
         table = quote(annotation.value());
         try {
             constructor = type.getDeclaredConstructor();
             constructor.setAccessible(true);
         } catch (ReflectiveOperationException e) {
-            throw new OrmException("Entity needs a no-argument constructor: " + type.getName(), e);
+            throw new OrmException("实体需要无参构造方法：" + type.getName(), e);
         }
         var bindings = new ArrayList<Binding>();
         var names = new HashSet<String>();
@@ -39,21 +39,21 @@ final class EntityMetadata {
             Column column = field.getAnnotation(Column.class);
             if (column == null) continue;
             if (Modifier.isStatic(field.getModifiers()) || Modifier.isFinal(field.getModifiers())) {
-                throw new OrmException("Mapped fields must be mutable instance fields: " + field.getName());
+                throw new OrmException("映射属性必须是可修改的实例字段：" + field.getName());
             }
             quote(column.value());
-            if (!names.add(column.value())) throw new OrmException("Duplicate column: " + column.value());
+            if (!names.add(column.value())) throw new OrmException("列名重复：" + column.value());
             field.setAccessible(true);
             Binding binding = new Binding(field, column.value());
             bindings.add(binding);
             if (field.isAnnotationPresent(Id.class)) {
-                if (primaryKey != null) throw new OrmException("Only one @Id is supported");
+                if (primaryKey != null) throw new OrmException("仅支持一个主键");
                 primaryKey = binding;
             }
         }
-        if (primaryKey == null) throw new OrmException("Entity needs one mapped @Id");
+        if (primaryKey == null) throw new OrmException("实体需要一个带列映射的主键");
         if (primaryKey.field().getType() != String.class) {
-            throw new OrmException("This assignment uses String primary keys");
+            throw new OrmException("主键类型需要是 String");
         }
         columns = List.copyOf(bindings);
         id = primaryKey;
@@ -61,19 +61,19 @@ final class EntityMetadata {
 
     Object newInstance() {
         try { return constructor.newInstance(); }
-        catch (ReflectiveOperationException e) { throw new OrmException("Cannot create entity", e); }
+        catch (ReflectiveOperationException e) { throw new OrmException("无法创建实体对象", e); }
     }
 
     List<Binding> nonIdColumns() { return columns.stream().filter(c -> c != id).toList(); }
 
     Object requiredId(Object entity) {
         Object value = id.read(entity);
-        if (value == null || value.toString().isBlank()) throw new OrmException("Primary key must not be blank");
+        if (value == null || value.toString().isBlank()) throw new OrmException("主键不能为空");
         return value;
     }
 
     static String quote(String identifier) {
-        if (!identifier.matches("[a-z_][a-z0-9_]*")) throw new OrmException("Invalid SQL identifier: " + identifier);
+        if (!identifier.matches("[a-z_][a-z0-9_]*")) throw new OrmException("不合法的表名或列名：" + identifier);
         return "\"" + identifier + "\"";
     }
 
@@ -81,12 +81,12 @@ final class EntityMetadata {
         String sqlName() { return quote(name); }
         Object read(Object entity) {
             try { return field.get(entity); }
-            catch (IllegalAccessException e) { throw new OrmException("Cannot read " + name, e); }
+            catch (IllegalAccessException e) { throw new OrmException("无法读取属性：" + name, e); }
         }
         void write(Object entity, Object value) {
             try { field.set(entity, value); }
             catch (IllegalAccessException | IllegalArgumentException e) {
-                throw new OrmException("Cannot assign column " + name + " to " + field.getType().getName(), e);
+                throw new OrmException("无法赋值列：" + name + " to " + field.getType().getName(), e);
             }
         }
     }

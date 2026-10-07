@@ -14,10 +14,12 @@ public class Student {
     private String major;
     @Column("age")
     private Integer age;
+    // PostgreSQL 的 DATE 类型对应 LocalDate。
     @Column("enrollment_date")
     private LocalDate enrollmentDate;
     @Column("graduated")
     private Boolean graduated;
+    // 金额用 BigDecimal 保存，避免浮点误差。
     @Column("tuition")
     private BigDecimal tuition;
 

@@ -1,8 +1,5 @@
 package cn.edu.jdbcorm;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-
 /** 实体主键使用字符串，由调用方赋值。 */
 @Table("colleges")
 public class College {

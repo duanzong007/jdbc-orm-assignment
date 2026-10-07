@@ -14,10 +14,10 @@ public final class Database {
     public static Connection connect() throws SQLException {
         Properties config = new Properties();
         try (InputStream input = Database.class.getResourceAsStream("/database.properties")) {
-            if (input == null) throw new IOException("database.properties not found");
+            if (input == null) throw new IOException("未找到 database.properties");
             config.load(input);
         } catch (IOException e) {
-            throw new SQLException("Cannot load database configuration", e);
+            throw new SQLException("无法读取数据库配置", e);
         }
         String url = setting("DB_URL", config.getProperty("db.url"));
         String user = setting("DB_USER", config.getProperty("db.user"));

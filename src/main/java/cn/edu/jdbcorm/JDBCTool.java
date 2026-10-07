@@ -28,8 +28,8 @@ public final class JDBCTool {
             for (int i = 1; i <= metadata.getColumnCount(); i++) {
                 String label = metadata.getColumnLabel(i);
                 var column = byName.get(label);
-                if (column == null) throw new OrmException("Unmapped result column: " + label);
-                if (selected.contains(column)) throw new OrmException("Duplicate result column: " + label);
+                if (column == null) throw new OrmException("查询列未配置映射：" + label);
+                if (selected.contains(column)) throw new OrmException("查询列重复：" + label);
                 selected.add(column);
             }
             List<T> result = new ArrayList<>();
@@ -43,7 +43,7 @@ public final class JDBCTool {
             }
             return result;
         } catch (SQLException e) {
-            throw new OrmException("Cannot map query result to " + clazz.getSimpleName(), e);
+            throw new OrmException("查询结果映射失败：" + clazz.getSimpleName(), e);
         }
     }
 
@@ -103,19 +103,21 @@ public final class JDBCTool {
         }
     }
 
+    /** 值通过占位符绑定，不直接拼接到 SQL 中。 */
     private static int execute(String sql, List<Object> values, Connection connection) {
         Objects.requireNonNull(connection, "connection");
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             for (int i = 0; i < values.size(); i++) statement.setObject(i + 1, values.get(i));
             return statement.executeUpdate();
         } catch (SQLException e) {
-            throw new OrmException("Database operation failed: " + sql, e);
+            throw new OrmException("数据库操作失败：" + sql, e);
         }
     }
 
+    /** 将 JDBC 返回的日期、数值等类型转换成实体属性类型。 */
     private static Object convert(Object value, Class<?> type) {
         if (value == null) {
-            if (type.isPrimitive()) throw new OrmException("SQL NULL cannot be assigned to a primitive field");
+            if (type.isPrimitive()) throw new OrmException("SQL 空值不能赋给基本类型属性");
             return null;
         }
         if (type.isInstance(value)) return value;
@@ -124,6 +126,6 @@ public final class JDBCTool {
             return new BigDecimal(number.toString()).intValueExact();
         }
         if ((type == Boolean.class || type == boolean.class) && value instanceof Boolean) return value;
-        throw new OrmException("Unsupported conversion: " + value.getClass().getName() + " -> " + type.getName());
+        throw new OrmException("不支持的类型转换：" + value.getClass().getName() + " -> " + type.getName());
     }
 }
