@@ -35,20 +35,22 @@ final class EntityMetadata {
         var bindings = new ArrayList<Binding>();
         var names = new HashSet<String>();
         Binding primaryKey = null;
-        for (Field field : type.getDeclaredFields()) {
-            Column column = field.getAnnotation(Column.class);
-            if (column == null) continue;
-            if (Modifier.isStatic(field.getModifiers()) || Modifier.isFinal(field.getModifiers())) {
-                throw new OrmException("映射属性必须是可修改的实例字段：" + field.getName());
-            }
-            quote(column.value());
-            if (!names.add(column.value())) throw new OrmException("列名重复：" + column.value());
-            field.setAccessible(true);
-            Binding binding = new Binding(field, column.value());
-            bindings.add(binding);
-            if (field.isAnnotationPresent(Id.class)) {
-                if (primaryKey != null) throw new OrmException("仅支持一个主键");
-                primaryKey = binding;
+        for (Class<?> current = type; current != null && current != Object.class; current = current.getSuperclass()) {
+            for (Field field : current.getDeclaredFields()) {
+                Column column = field.getAnnotation(Column.class);
+                if (column == null) continue;
+                if (Modifier.isStatic(field.getModifiers()) || Modifier.isFinal(field.getModifiers())) {
+                    throw new OrmException("映射属性必须是可修改的实例字段：" + field.getName());
+                }
+                quote(column.value());
+                if (!names.add(column.value())) throw new OrmException("列名重复：" + column.value());
+                field.setAccessible(true);
+                Binding binding = new Binding(field, column.value());
+                bindings.add(binding);
+                if (field.isAnnotationPresent(Id.class)) {
+                    if (primaryKey != null) throw new OrmException("仅支持一个主键");
+                    primaryKey = binding;
+                }
             }
         }
         if (primaryKey == null) throw new OrmException("实体需要一个带列映射的主键");
@@ -73,8 +75,8 @@ final class EntityMetadata {
     }
 
     static String quote(String identifier) {
-        if (!identifier.matches("[a-z_][a-z0-9_]*")) throw new OrmException("不合法的表名或列名：" + identifier);
-        return "\"" + identifier + "\"";
+        if (!identifier.matches("[A-Za-z_][A-Za-z0-9_]*")) throw new OrmException("不合法的表名或列名：" + identifier);
+        return "`" + identifier + "`";
     }
 
     record Binding(Field field, String name) {

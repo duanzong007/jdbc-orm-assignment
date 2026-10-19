@@ -5,7 +5,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,7 +30,10 @@ public final class JDBCTool {
             for (int i = 1; i <= metadata.getColumnCount(); i++) {
                 String label = metadata.getColumnLabel(i);
                 var column = byName.get(label);
-                if (column == null) throw new OrmException("查询列未配置映射：" + label);
+                if (column == null) {
+                    selected.add(null);
+                    continue;
+                }
                 if (selected.contains(column)) throw new OrmException("查询列重复：" + label);
                 selected.add(column);
             }
@@ -37,6 +42,7 @@ public final class JDBCTool {
                 T entity = clazz.cast(mapping.newInstance());
                 for (int i = 0; i < selected.size(); i++) {
                     var binding = selected.get(i);
+                    if (binding == null) continue;
                     binding.write(entity, convert(rs.getObject(i + 1), binding.field().getType()));
                 }
                 result.add(entity);
@@ -122,10 +128,19 @@ public final class JDBCTool {
         }
         if (type.isInstance(value)) return value;
         if (type == LocalDate.class && value instanceof java.sql.Date date) return date.toLocalDate();
+        if (type == LocalDateTime.class && value instanceof Timestamp timestamp) return timestamp.toLocalDateTime();
+        if (type == LocalDateTime.class && value instanceof java.util.Date date) {
+            return new Timestamp(date.getTime()).toLocalDateTime();
+        }
         if ((type == Integer.class || type == int.class) && value instanceof Number number) {
             return new BigDecimal(number.toString()).intValueExact();
         }
+        if ((type == Double.class || type == double.class) && value instanceof Number number) return number.doubleValue();
+        if ((type == Long.class || type == long.class) && value instanceof Number number) return number.longValue();
         if ((type == Boolean.class || type == boolean.class) && value instanceof Boolean) return value;
+        if ((type == Boolean.class || type == boolean.class) && value instanceof byte[] bytes && bytes.length == 1) {
+            return bytes[0] != 0;
+        }
         throw new OrmException("不支持的类型转换：" + value.getClass().getName() + " -> " + type.getName());
     }
 }
