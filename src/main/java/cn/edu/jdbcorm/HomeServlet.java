@@ -34,6 +34,6 @@ public class HomeServlet extends HttpServlet {
                 .append(Page.escape(label)).append("</a>"));
         body.append("</section>");
         response.setContentType("text/html;charset=UTF-8");
-        response.getWriter().write(Page.html("首页", user, body.toString()));
+        response.getWriter().write(Page.html(request.getContextPath(), "首页", user, body.toString()));
     }
 }
