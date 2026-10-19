@@ -1,0 +1,97 @@
+package cn.edu.jdbcorm;
+
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
+
+@WebServlet(urlPatterns = {"/books", "/books/add"})
+public class BooksServlet extends HttpServlet {
+    private final BookRepository books = new BookRepository();
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        User user = (User) request.getSession().getAttribute("user");
+        response.setContentType("text/html;charset=UTF-8");
+        String message = request.getParameter("message");
+        String body = (message == null ? "" : "<p class='notice'>" + Page.escape(message) + "</p>")
+                + (canManage(user) ? addForm() : "") + searchForm(request.getParameter("keyword"));
+        try {
+            body += table(books.search(request.getParameter("keyword")), canManage(user));
+        } catch (Exception e) {
+            body += "<p class='error'>图书查询失败</p>";
+        }
+        response.getWriter().write(Page.html(request.getContextPath(), "图书", user, body));
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        request.setCharacterEncoding("UTF-8");
+        User user = (User) request.getSession().getAttribute("user");
+        if (!canManage(user)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+        try {
+            Book book = new Book();
+            book.setTitle(required(request, "title"));
+            book.setAuthor(required(request, "author"));
+            book.setType(required(request, "type"));
+            book.setPublisher(required(request, "publisher"));
+            book.setDays(Integer.valueOf(required(request, "days")));
+            book.setPrice(Double.valueOf(required(request, "price")));
+            book.setStock(Integer.valueOf(required(request, "stock")));
+            book.setIntroduction(request.getParameter("introduction"));
+            if (book.getDays() <= 0 || book.getPrice() < 0 || book.getStock() < 0 || book.getStock() > 500) {
+                throw new IllegalArgumentException("天数、价格或库存不合法，库存不能超过 500");
+            }
+            books.add(book);
+            response.sendRedirect(request.getContextPath() + "/books?message=" + java.net.URLEncoder.encode("图书已添加", java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType("text/html;charset=UTF-8");
+            response.getWriter().write(Page.html(request.getContextPath(), "添加图书", user,
+                    "<p class='error'>" + Page.escape(e.getMessage()) + "</p><a href='books'>返回</a>"));
+        }
+    }
+
+    static boolean canManage(User user) { return user instanceof Admin || user instanceof Operator; }
+
+    private String addForm() {
+        return "<details><summary>添加图书</summary><form method='post' action='books/add'>"
+                + "<label>书名<input name='title' required maxlength='30'></label><label>作者<input name='author' required maxlength='30'></label>"
+                + "<label>类型<select name='type' required><option>哲学</option><option>宗教</option><option>计算机</option><option>文学</option><option>历史</option><option>艺术</option><option>其他</option></select></label>"
+                + "<label>出版社<input name='publisher' required maxlength='20'></label><label>借阅天数<input name='days' type='number' min='1' value='30' required></label>"
+                + "<label>价格<input name='price' type='number' min='0' step='0.01' required></label><label>库存<input name='stock' type='number' min='0' max='500' value='1' required></label>"
+                + "<label>简介<textarea name='introduction' maxlength='512'></textarea></label><button>保存</button></form></details>";
+    }
+
+    private String searchForm(String keyword) {
+        return "<form method='get'><label>关键字<input name='keyword' value='" + Page.escape(keyword)
+                + "' placeholder='书名、作者、类型或出版社'></label><button>查询</button></form>";
+    }
+
+    private String table(List<Book> list, boolean canManage) {
+        StringBuilder body = new StringBuilder("<table><thead><tr><th>书名</th><th>作者</th><th>类型</th><th>出版社</th><th>借阅天数</th><th>库存</th><th>状态</th><th></th></tr></thead><tbody>");
+        for (Book book : list) {
+            body.append("<tr><td>").append(Page.escape(book.getTitle())).append("</td><td>")
+                    .append(Page.escape(book.getAuthor())).append("</td><td>").append(Page.escape(book.getType()))
+                    .append("</td><td>").append(Page.escape(book.getPublisher())).append("</td><td>")
+                    .append(Page.escape(book.getDays())).append("</td><td>").append(Page.escape(book.getStock()))
+                    .append("</td><td>").append(Page.escape(book.getStatus())).append("</td><td>");
+            if (canManage) body.append("<a href='books/edit?id=").append(Page.escape(book.getId())).append("'>编辑</a> ")
+                    .append("<a href='books/copies?id=").append(Page.escape(book.getId())).append("'>副本</a>");
+            else if ("正常".equals(book.getStatus())) body.append("<a href='loans?bookId=").append(Page.escape(book.getId())).append("'>借阅</a>");
+            body.append("</td></tr>");
+        }
+        return body.append("</tbody></table>").toString();
+    }
+
+    private String required(HttpServletRequest request, String key) {
+        String value = request.getParameter(key);
+        if (value == null || value.isBlank()) throw new IllegalArgumentException("请填写完整图书信息");
+        return value.trim();
+    }
+}

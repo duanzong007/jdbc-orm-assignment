@@ -19,6 +19,10 @@ input, select, button { min-height: 40px; padding: 8px 10px; border: 1px solid #
 button { width: fit-content; padding-inline: 18px; color: white; background: #24735b; border: 0; cursor: pointer; }
 .secondary { color: #34443c; background: #e7ece9; }
 .error { color: #a23b34; }
+.notice { color: #24735b; }
+details { margin: 18px 0; padding: 14px; background: white; border: 1px solid #dfe5e2; }
+summary { cursor: pointer; }
+textarea { min-height: 90px; padding: 8px; font: inherit; border: 1px solid #bdc9c3; border-radius: 4px; }
 table { width: 100%; border-collapse: collapse; background: white; }
 th, td { padding: 10px 12px; border-bottom: 1px solid #e3e8e5; text-align: left; }
 dl { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; max-width: 560px; background: white; }
