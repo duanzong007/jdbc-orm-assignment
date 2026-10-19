@@ -17,6 +17,7 @@ form { display: grid; gap: 14px; max-width: 520px; }
 label { display: grid; gap: 6px; color: #43524b; }
 input, select, button { min-height: 40px; padding: 8px 10px; border: 1px solid #bdc9c3; border-radius: 4px; font: inherit; }
 button { width: fit-content; padding-inline: 18px; color: white; background: #24735b; border: 0; cursor: pointer; }
+.secondary { color: #34443c; background: #e7ece9; }
 .error { color: #a23b34; }
 table { width: 100%; border-collapse: collapse; background: white; }
 th, td { padding: 10px 12px; border-bottom: 1px solid #e3e8e5; text-align: left; }
