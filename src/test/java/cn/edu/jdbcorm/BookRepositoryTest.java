@@ -75,4 +75,27 @@ class BookRepositoryTest {
             }
         }
     }
+
+    @Test void changesStockWhenCopiesAreAddedOrRemoved() throws Exception {
+        Book book = new Book();
+        book.setTitle("副本管理测试");
+        book.setAuthor("测试作者");
+        book.setType("计算机");
+        book.setPublisher("测试出版社");
+        book.setDays(14);
+        book.setPrice(10.5);
+        book.setStock(0);
+        BookRepository repository = new BookRepository();
+        repository.add(book);
+        repository.addCopy(book.getId());
+        Book updated = repository.find(book.getId());
+        assertEquals(1, updated.getStock());
+        BookCopy copy = repository.copies(book.getId()).get(0);
+        repository.deleteCopy(copy.getId());
+        assertEquals(0, repository.find(book.getId()).getStock());
+        try (var connection = Database.connect(); var statement = connection.prepareStatement("DELETE FROM book WHERE id=?")) {
+            statement.setString(1, book.getId());
+            statement.executeUpdate();
+        }
+    }
 }

@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
-@WebServlet(urlPatterns = {"/books", "/books/add", "/books/edit", "/books/discard"})
+@WebServlet(urlPatterns = {"/books", "/books/add", "/books/edit", "/books/discard", "/books/copies", "/books/copies/add", "/books/copies/delete"})
 public class BooksServlet extends HttpServlet {
     private final BookRepository books = new BookRepository();
 
@@ -15,6 +15,10 @@ public class BooksServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         User user = (User) request.getSession().getAttribute("user");
         response.setContentType("text/html;charset=UTF-8");
+        if (request.getServletPath().endsWith("copies")) {
+            response.getWriter().write(Page.html(request.getContextPath(), "图书副本", user, copiesPage(request)));
+            return;
+        }
         if (request.getServletPath().endsWith("edit")) {
             response.getWriter().write(Page.html(request.getContextPath(), "编辑图书", user, editForm(request)));
             return;
@@ -40,6 +44,16 @@ public class BooksServlet extends HttpServlet {
         }
         try {
             String path = request.getServletPath();
+            if (path.endsWith("copies/add")) {
+                books.addCopy(required(request, "bookId"));
+                response.sendRedirect(request.getContextPath() + "/books/copies?id=" + request.getParameter("bookId"));
+                return;
+            }
+            if (path.endsWith("copies/delete")) {
+                books.deleteCopy(required(request, "copyId"));
+                response.sendRedirect(request.getContextPath() + "/books/copies?id=" + request.getParameter("bookId"));
+                return;
+            }
             if (path.endsWith("discard")) {
                 books.discard(required(request, "id"));
                 response.sendRedirect(request.getContextPath() + "/books?message=" + java.net.URLEncoder.encode("图书已废弃", java.nio.charset.StandardCharsets.UTF_8));
@@ -136,6 +150,29 @@ public class BooksServlet extends HttpServlet {
                     + "<button>保存</button></form>";
         } catch (Exception e) {
             return "<p class='error'>读取图书失败</p>";
+        }
+    }
+
+    private String copiesPage(HttpServletRequest request) {
+        String id = request.getParameter("id");
+        try {
+            Book book = id == null ? null : books.find(id);
+            if (book == null) return "<p class='error'>未找到图书</p><a href='books'>返回</a>";
+            StringBuilder body = new StringBuilder("<p>").append(Page.escape(book.getTitle())).append("，库存 ")
+                    .append(Page.escape(book.getStock())).append(" 本</p>");
+            if ("正常".equals(book.getStatus())) body.append("<form method='post' action='books/copies/add'><input type='hidden' name='bookId' value='")
+                    .append(Page.escape(id)).append("'><button>新增副本</button></form>");
+            body.append("<table><thead><tr><th>副本编号</th><th>状态</th><th></th></tr></thead><tbody>");
+            for (BookCopy copy : books.copies(id)) {
+                body.append("<tr><td>").append(Page.escape(copy.getId())).append("</td><td>")
+                        .append(Boolean.TRUE.equals(copy.getBorrowed()) ? "借出" : "可借")
+                        .append("</td><td><form method='post' action='books/copies/delete' class='inline'><input type='hidden' name='bookId' value='")
+                        .append(Page.escape(id)).append("'><input type='hidden' name='copyId' value='").append(Page.escape(copy.getId()))
+                        .append("'><button class='text-button'>删除</button></form></td></tr>");
+            }
+            return body.append("</tbody></table><a href='books'>返回图书列表</a>").toString();
+        } catch (Exception e) {
+            return "<p class='error'>读取副本失败</p>";
         }
     }
 }

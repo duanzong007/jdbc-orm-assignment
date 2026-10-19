@@ -10,6 +10,86 @@ import java.util.List;
 import java.util.UUID;
 
 public final class BookRepository {
+    public List<BookCopy> copies(String bookId) throws SQLException {
+        try (Connection connection = Database.connect();
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM bookcopy WHERE bookId=? ORDER BY createTime DESC")) {
+            statement.setString(1, bookId);
+            try (ResultSet result = statement.executeQuery()) { return JDBCTool.resultSetToList(result, BookCopy.class); }
+        }
+    }
+
+    public void addCopy(String bookId) throws SQLException {
+        try (Connection connection = Database.connect()) {
+            connection.setAutoCommit(false);
+            try {
+                try (PreparedStatement statement = connection.prepareStatement("SELECT status FROM book WHERE id=? FOR UPDATE")) {
+                    statement.setString(1, bookId);
+                    try (ResultSet result = statement.executeQuery()) {
+                        if (!result.next() || !"正常".equals(result.getString(1))) throw new IllegalArgumentException("图书不存在或已废弃");
+                    }
+                }
+                LocalDateTime now = LocalDateTime.now();
+                BookCopy copy = new BookCopy();
+                copy.setId(UUID.randomUUID().toString());
+                copy.setCreateTime(now);
+                copy.setUpdateTime(now);
+                copy.setBookId(bookId);
+                copy.setBorrowed(false);
+                JDBCTool.save(copy, connection);
+                try (PreparedStatement statement = connection.prepareStatement("UPDATE book SET stock=stock+1,updateTime=? WHERE id=?")) {
+                    statement.setObject(1, now);
+                    statement.setString(2, bookId);
+                    statement.executeUpdate();
+                }
+                connection.commit();
+            } catch (Exception e) {
+                connection.rollback();
+                if (e instanceof SQLException sqlException) throw sqlException;
+                if (e instanceof RuntimeException runtimeException) throw runtimeException;
+                throw new SQLException(e);
+            }
+        }
+    }
+
+    public void deleteCopy(String copyId) throws SQLException {
+        try (Connection connection = Database.connect()) {
+            connection.setAutoCommit(false);
+            try {
+                String bookId;
+                try (PreparedStatement statement = connection.prepareStatement("SELECT bookId,isBorrowed FROM bookcopy WHERE id=? FOR UPDATE")) {
+                    statement.setString(1, copyId);
+                    try (ResultSet result = statement.executeQuery()) {
+                        if (!result.next()) throw new IllegalArgumentException("副本不存在");
+                        bookId = result.getString(1);
+                        if (result.getBoolean(2)) throw new IllegalArgumentException("外借中的副本不能删除");
+                    }
+                }
+                try (PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) FROM loan WHERE bookCopyId=?")) {
+                    statement.setString(1, copyId);
+                    try (ResultSet result = statement.executeQuery()) {
+                        result.next();
+                        if (result.getInt(1) > 0) throw new IllegalArgumentException("有历史借阅记录的副本不能删除");
+                    }
+                }
+                try (PreparedStatement statement = connection.prepareStatement("DELETE FROM bookcopy WHERE id=?")) {
+                    statement.setString(1, copyId);
+                    statement.executeUpdate();
+                }
+                try (PreparedStatement statement = connection.prepareStatement("UPDATE book SET stock=stock-1,updateTime=? WHERE id=? AND stock>0")) {
+                    statement.setObject(1, LocalDateTime.now());
+                    statement.setString(2, bookId);
+                    if (statement.executeUpdate() != 1) throw new SQLException("图书库存不一致");
+                }
+                connection.commit();
+            } catch (Exception e) {
+                connection.rollback();
+                if (e instanceof SQLException sqlException) throw sqlException;
+                if (e instanceof RuntimeException runtimeException) throw runtimeException;
+                throw new SQLException(e);
+            }
+        }
+    }
+
     public void updateInfo(Book book) throws SQLException {
         try (Connection connection = Database.connect();
              PreparedStatement statement = connection.prepareStatement(
