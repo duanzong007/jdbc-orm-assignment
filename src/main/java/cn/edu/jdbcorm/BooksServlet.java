@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
-@WebServlet(urlPatterns = {"/books", "/books/add"})
+@WebServlet(urlPatterns = {"/books", "/books/add", "/books/edit", "/books/discard"})
 public class BooksServlet extends HttpServlet {
     private final BookRepository books = new BookRepository();
 
@@ -15,6 +15,10 @@ public class BooksServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         User user = (User) request.getSession().getAttribute("user");
         response.setContentType("text/html;charset=UTF-8");
+        if (request.getServletPath().endsWith("edit")) {
+            response.getWriter().write(Page.html(request.getContextPath(), "编辑图书", user, editForm(request)));
+            return;
+        }
         String message = request.getParameter("message");
         String body = (message == null ? "" : "<p class='notice'>" + Page.escape(message) + "</p>")
                 + (canManage(user) ? addForm() : "") + searchForm(request.getParameter("keyword"));
@@ -35,6 +39,26 @@ public class BooksServlet extends HttpServlet {
             return;
         }
         try {
+            String path = request.getServletPath();
+            if (path.endsWith("discard")) {
+                books.discard(required(request, "id"));
+                response.sendRedirect(request.getContextPath() + "/books?message=" + java.net.URLEncoder.encode("图书已废弃", java.nio.charset.StandardCharsets.UTF_8));
+                return;
+            }
+            if (path.endsWith("edit")) {
+                Book update = new Book();
+                update.setId(required(request, "id"));
+                update.setTitle(required(request, "title"));
+                update.setAuthor(required(request, "author"));
+                update.setType(required(request, "type"));
+                update.setPublisher(required(request, "publisher"));
+                update.setDays(Integer.valueOf(required(request, "days")));
+                update.setPrice(Double.valueOf(required(request, "price")));
+                if (update.getDays() <= 0 || update.getPrice() < 0) throw new IllegalArgumentException("借阅天数或价格不合法");
+                books.updateInfo(update);
+                response.sendRedirect(request.getContextPath() + "/books?message=" + java.net.URLEncoder.encode("图书资料已更新", java.nio.charset.StandardCharsets.UTF_8));
+                return;
+            }
             Book book = new Book();
             book.setTitle(required(request, "title"));
             book.setAuthor(required(request, "author"));
@@ -84,6 +108,8 @@ public class BooksServlet extends HttpServlet {
             if (canManage) body.append("<a href='books/edit?id=").append(Page.escape(book.getId())).append("'>编辑</a> ")
                     .append("<a href='books/copies?id=").append(Page.escape(book.getId())).append("'>副本</a>");
             else if ("正常".equals(book.getStatus())) body.append("<a href='loans?bookId=").append(Page.escape(book.getId())).append("'>借阅</a>");
+            if (canManage && "正常".equals(book.getStatus())) body.append(" <form method='post' action='books/discard' class='inline'><input type='hidden' name='id' value='")
+                    .append(Page.escape(book.getId())).append("'><button class='text-button'>废弃</button></form>");
             body.append("</td></tr>");
         }
         return body.append("</tbody></table>").toString();
@@ -93,5 +119,23 @@ public class BooksServlet extends HttpServlet {
         String value = request.getParameter(key);
         if (value == null || value.isBlank()) throw new IllegalArgumentException("请填写完整图书信息");
         return value.trim();
+    }
+
+    private String editForm(HttpServletRequest request) {
+        String id = request.getParameter("id");
+        try {
+            Book book = id == null ? null : books.find(id);
+            if (book == null) return "<p class='error'>未找到图书</p>";
+            return "<form method='post' action='books/edit'><input type='hidden' name='id' value='" + Page.escape(id) + "'>"
+                    + "<label>书名<input name='title' required value='" + Page.escape(book.getTitle()) + "'></label>"
+                    + "<label>作者<input name='author' required value='" + Page.escape(book.getAuthor()) + "'></label>"
+                    + "<label>类型<input name='type' required value='" + Page.escape(book.getType()) + "'></label>"
+                    + "<label>出版社<input name='publisher' required value='" + Page.escape(book.getPublisher()) + "'></label>"
+                    + "<label>借阅天数<input name='days' type='number' min='1' required value='" + Page.escape(book.getDays()) + "'></label>"
+                    + "<label>价格<input name='price' type='number' min='0' step='0.01' required value='" + Page.escape(book.getPrice()) + "'></label>"
+                    + "<button>保存</button></form>";
+        } catch (Exception e) {
+            return "<p class='error'>读取图书失败</p>";
+        }
     }
 }

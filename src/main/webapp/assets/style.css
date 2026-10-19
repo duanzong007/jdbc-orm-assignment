@@ -24,6 +24,8 @@ details { margin: 18px 0; padding: 14px; background: white; border: 1px solid #d
 summary { cursor: pointer; }
 textarea { min-height: 90px; padding: 8px; font: inherit; border: 1px solid #bdc9c3; border-radius: 4px; }
 table { width: 100%; border-collapse: collapse; background: white; }
+.inline { display: inline; }
+.text-button { min-height: auto; padding: 0; color: #a23b34; background: transparent; }
 th, td { padding: 10px 12px; border-bottom: 1px solid #e3e8e5; text-align: left; }
 dl { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; max-width: 560px; background: white; }
 dt, dd { margin: 0; padding: 10px 12px; border-bottom: 1px solid #e3e8e5; }
