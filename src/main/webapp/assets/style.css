@@ -21,3 +21,5 @@ button { width: fit-content; padding-inline: 18px; color: white; background: #24
 .error { color: #a23b34; }
 table { width: 100%; border-collapse: collapse; background: white; }
 th, td { padding: 10px 12px; border-bottom: 1px solid #e3e8e5; text-align: left; }
+dl { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; max-width: 560px; background: white; }
+dt, dd { margin: 0; padding: 10px 12px; border-bottom: 1px solid #e3e8e5; }
