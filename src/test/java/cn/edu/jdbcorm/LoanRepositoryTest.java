@@ -20,6 +20,10 @@ class LoanRepositoryTest {
         LoanRecord loan = repository.mine(user.getId(), true).get(0);
         assertEquals(book.getTitle(), loan.bookTitle());
         assertTrue(loan.dueDate().isAfter(loan.borrowDate()));
+        assertThrows(IllegalArgumentException.class, () -> repository.returnBook("other-user", loan.bookCopyId(), false));
+        repository.returnBook(user.getId(), loan.bookCopyId(), false);
+        assertTrue(repository.mine(user.getId(), true).isEmpty());
+        assertEquals("已还", repository.mine(user.getId(), false).get(0).status());
         try (var connection = Database.connect()) {
             try (var statement = connection.prepareStatement("UPDATE bookcopy SET isBorrowed=b'0' WHERE id=?")) {
                 statement.setString(1, loan.bookCopyId());
