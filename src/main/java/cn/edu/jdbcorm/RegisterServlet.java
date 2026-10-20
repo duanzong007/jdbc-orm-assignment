@@ -61,16 +61,17 @@ public class RegisterServlet extends HttpServlet {
 
     private String form(String error) {
         return (error.isBlank() ? "" : "<p class='error'>" + Page.escape(error) + "</p>")
-                + "<form method='post'><label>姓名<input name='name' required maxlength='40'></label>"
-                + "<label>密码<input name='password' type='password' minlength='6' required></label>"
-                + "<label>手机号<input name='phone' inputmode='numeric' pattern='1[3-9][0-9]{9}' required></label>"
-                + "<label>角色<select name='role' id='role'><option value='学生'>学生</option><option value='教师'>教师</option></select></label>"
-                + "<label>专业<select name='major' required><option value=''>请选择</option><option>计算机科学与技术</option><option>软件工程</option><option>物联网工程</option><option>电子信息工程</option><option>其他</option></select></label>"
-                + "<div id='studentFields'><label>年级<input name='grade' placeholder='如：2026级'></label></div>"
-                + "<label>学院<input name='college' required></label>"
-                + "<div id='teacherFields' hidden><label>职称<input name='title'></label></div>"
-                + "<button type='submit'>注册</button> <a href='login'>已有账号？登录</a></form>"
-                + "<script>const r=document.querySelector('#role');r.addEventListener('change',()=>{const s=r.value==='学生';document.querySelector('#studentFields').hidden=!s;document.querySelector('#teacherFields').hidden=s})</script>";
+                + "<form method='post' class='auth-form auth-form-wide'><label class='form-label'>姓名<input class='form-control' name='name' required maxlength='40'></label>"
+                + "<label class='form-label'>密码<input class='form-control' name='password' type='password' minlength='6' required></label>"
+                + "<label class='form-label'>手机号<input class='form-control' name='phone' inputmode='numeric' pattern='1[3-9][0-9]{9}' required></label>"
+                + "<label class='form-label'>角色<select class='form-select' name='role' id='role'><option value='学生'>学生</option><option value='教师'>教师</option></select></label>"
+                + "<label class='form-label'>专业<select class='form-select' name='major' required><option value=''>请选择</option><option>计算机科学与技术</option><option>软件工程</option><option>物联网工程</option><option>电子信息工程</option><option>其他</option></select></label>"
+                + "<div id='studentFields' class='conditional-field'><label class='form-label'>年级<input class='form-control' name='grade' placeholder='如：2026级'></label></div>"
+                + "<label class='form-label'>学院<input class='form-control' name='college' required></label>"
+                + "<div id='teacherFields' class='conditional-field' hidden><label class='form-label'>职称<input class='form-control' name='title'></label></div>"
+                + "<div class='form-actions'><button class='btn btn-success' type='submit'>创建账号</button>"
+                + "<a class='auth-link' href='login'>已有账号？登录</a></div></form>"
+                + "<script>const r=document.querySelector('#role');const studentFields=document.querySelector('#studentFields');const teacherFields=document.querySelector('#teacherFields');const updateFields=()=>{const student=r.value==='学生';studentFields.hidden=!student;teacherFields.hidden=student};r.addEventListener('change',updateFields);updateFields()</script>";
     }
 
     private String value(HttpServletRequest request, String key) {

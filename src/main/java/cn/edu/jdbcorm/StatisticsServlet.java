@@ -17,8 +17,9 @@ public class StatisticsServlet extends HttpServlet {
         response.setContentType("text/html;charset=UTF-8");
         StringBuilder body;
         try {
-            body = new StringBuilder("<h2>按图书类型统计</h2>").append(table(statistics.bookTypes()))
-                    .append("<h2>按专业统计</h2>").append(table(statistics.majors()));
+            body = new StringBuilder("<div class='statistics-layout'><section class='stats-section'><div class='section-heading'><h2>按图书类型</h2></div>")
+                    .append(table(statistics.bookTypes())).append("</section><section class='stats-section'><div class='section-heading'><h2>按专业</h2></div>")
+                    .append(table(statistics.majors())).append("</section></div>");
         } catch (Exception e) {
             body = new StringBuilder("<p class='error'>统计查询失败</p>");
         }
@@ -26,9 +27,10 @@ public class StatisticsServlet extends HttpServlet {
     }
 
     private String table(java.util.List<StatisticsRepository.CountRow> rows) {
-        StringBuilder table = new StringBuilder("<table><thead><tr><th>分类</th><th>借阅次数</th></tr></thead><tbody>");
+        StringBuilder table = new StringBuilder("<div class='table-responsive'><table class='table table-hover align-middle data-table stats-table'><thead><tr><th>分类</th><th>借阅次数</th></tr></thead><tbody>");
         for (var row : rows) table.append("<tr><td>").append(Page.escape(row.name())).append("</td><td>")
                 .append(row.count()).append("</td></tr>");
-        return table.append("</tbody></table>").toString();
+        if (rows.isEmpty()) table.append("<tr><td colspan='2' class='empty-cell'>暂无统计数据</td></tr>");
+        return table.append("</tbody></table></div>").toString();
     }
 }

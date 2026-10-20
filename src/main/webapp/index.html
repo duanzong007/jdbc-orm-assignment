@@ -4,15 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>图书馆管理系统</title>
-  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="assets/vendor/icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="assets/style.css?v=5">
 </head>
 <body>
-  <main class="login-layout">
-    <section class="login-panel">
-      <h1>图书馆管理系统</h1>
-      <p>账号登录</p>
-      <a class="button-link" href="login">登录</a>
-      <a href="register">注册账号</a>
+  <main class="auth-screen">
+    <section class="auth-aside">
+      <div class="auth-brand">
+        <span class="auth-brand-mark"><i class="bi bi-journal-bookmark-fill"></i></span>
+        <span>图书馆管理系统</span>
+      </div>
+      <div class="auth-aside-title">
+        <span>馆藏与借阅</span>
+        <h2>馆藏管理<br>借阅服务</h2>
+      </div>
+    </section>
+    <section class="auth-main">
+      <div class="auth-panel landing-panel">
+        <div class="auth-heading">
+          <span class="auth-kicker">欢迎使用</span>
+          <h1>图书馆管理系统</h1>
+        </div>
+        <div class="landing-actions">
+          <a class="btn btn-success btn-lg" href="login"><i class="bi bi-box-arrow-in-right"></i>账号登录</a>
+          <a class="btn btn-outline-secondary btn-lg" href="register">注册账号</a>
+        </div>
+      </div>
     </section>
   </main>
 </body>

@@ -20,7 +20,7 @@ public class HomeServlet extends HttpServlet {
             links.put("借阅管理", "loans/admin");
             links.put("我的借阅", "loans/mine");
             links.put("借阅统计", "statistics");
-            links.put("图书推荐审核", "recommendations/review");
+            links.put("教师荐书审核", "recommendations/review");
         } else if (user instanceof Operator) {
             links.put("图书管理", "books");
             links.put("借阅办理", "loans");
@@ -30,12 +30,26 @@ public class HomeServlet extends HttpServlet {
             links.put("我的借阅", "loans/mine");
             if (user instanceof Teacher) links.put("推荐图书", "recommendations");
         }
-        StringBuilder body = new StringBuilder("<p>欢迎，").append(Page.escape(user.getName()))
-                .append("（").append(Page.escape(user.getRole())).append("）</p><section class='menu'>");
-        links.forEach((label, url) -> body.append("<a class='menu-item' href='").append(url).append("'>")
-                .append(Page.escape(label)).append("</a>"));
+        StringBuilder body = new StringBuilder("<section class='dashboard-welcome'><div><span class='welcome-label'>工作台</span><h2>欢迎回来，")
+                .append(Page.escape(user.getName())).append("</h2></div><span class='role-chip'><i class='bi bi-person-badge'></i>")
+                .append(Page.escape(user.getRole())).append("</span></section><section class='dashboard-grid'>");
+        links.forEach((label, url) -> body.append("<a class='dashboard-card' href='").append(url).append("'><span class='dashboard-icon'><i class='bi ")
+                .append(icon(label)).append("'></i></span><span class='dashboard-card-label'>").append(Page.escape(label))
+                .append("</span><i class='bi bi-arrow-up-right card-arrow'></i></a>"));
         body.append("</section>");
         response.setContentType("text/html;charset=UTF-8");
         response.getWriter().write(Page.html(request.getContextPath(), "首页", user, body.toString()));
+    }
+
+    private String icon(String label) {
+        return switch (label) {
+            case "用户信息" -> "bi-people";
+            case "图书管理", "借阅图书" -> "bi-book";
+            case "借阅办理", "借阅管理" -> "bi-arrow-left-right";
+            case "借阅统计" -> "bi-bar-chart-line";
+            case "教师荐书审核" -> "bi-check2-square";
+            case "推荐图书" -> "bi-lightbulb";
+            default -> "bi-clock-history";
+        };
     }
 }

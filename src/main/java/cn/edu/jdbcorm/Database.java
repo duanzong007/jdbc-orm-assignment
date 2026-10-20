@@ -1,9 +1,10 @@
 package cn.edu.jdbcorm;
 
+import com.mysql.cj.jdbc.MysqlDataSource;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
@@ -23,7 +24,11 @@ public final class Database {
         String user = setting("DB_USER", config.getProperty("db.user"));
         if (user == null || user.isBlank()) user = System.getProperty("user.name");
         String password = setting("DB_PASSWORD", config.getProperty("db.password", ""));
-        return DriverManager.getConnection(url, user, password);
+        MysqlDataSource dataSource = new MysqlDataSource();
+        dataSource.setURL(url);
+        dataSource.setUser(user);
+        dataSource.setPassword(password);
+        return dataSource.getConnection();
     }
 
     private static String setting(String environment, String fallback) {
