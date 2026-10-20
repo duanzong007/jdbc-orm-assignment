@@ -15,7 +15,7 @@ public final class Page {
                 + "<title>" + escape(title) + " · 图书馆管理系统</title><base href='" + escape(contextPath) + "/'>"
                 + "<link rel='stylesheet' href='assets/vendor/bootstrap.min.css'>"
                 + "<link rel='stylesheet' href='assets/vendor/icons/bootstrap-icons.min.css'>"
-                + "<link rel='stylesheet' href='assets/style.css?v=5'></head><body>";
+                + "<link rel='stylesheet' href='assets/style.css?v=6'></head><body>";
         if (user == null) {
             String panel = title.contains("注册") ? " auth-panel-wide" : "";
             return head + "<main class='auth-screen'><section class='auth-aside'><div class='auth-brand'>"

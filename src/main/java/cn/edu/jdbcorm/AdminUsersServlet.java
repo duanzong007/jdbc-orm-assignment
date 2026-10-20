@@ -30,11 +30,13 @@ public class AdminUsersServlet extends HttpServlet {
 
     private String search(HttpServletRequest request) {
         String keyword = request.getParameter("keyword");
-        boolean filtering = keyword != null && !keyword.isBlank();
+        boolean queried = request.getParameterMap().containsKey("keyword");
         StringBuilder body = new StringBuilder("<form method='get' class='filter-form'><label class='form-label'>关键字<input class='form-control' name='keyword' value='")
                 .append(Page.escape(keyword)).append("' placeholder='姓名、角色、手机号或专业'></label><button class='btn btn-success'><i class='bi bi-search'></i>查询</button></form>");
-        body.append("<div class='section-heading'><h2>").append(filtering ? "查询结果" : "用户列表")
-                .append("</h2></div><div class='table-responsive'><table class='table table-hover align-middle data-table'><thead><tr><th>姓名</th><th>角色</th><th>手机号</th><th>专业</th><th>创建时间</th><th>操作</th></tr></thead><tbody>");
+        if (!queried) {
+            return body.append("<div class='query-prompt'><i class='bi bi-search' aria-hidden='true'></i><span>提交查询后显示用户信息</span></div>").toString();
+        }
+        body.append("<div class='section-heading'><h2>查询结果</h2></div><div class='table-responsive'><table class='table table-hover align-middle data-table'><thead><tr><th>姓名</th><th>角色</th><th>手机号</th><th>专业</th><th>创建时间</th><th>操作</th></tr></thead><tbody>");
         int count = 0;
         boolean queryFailed = false;
         try (Connection connection = Database.connect();
