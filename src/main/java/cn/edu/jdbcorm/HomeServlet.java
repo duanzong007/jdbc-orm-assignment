@@ -18,11 +18,13 @@ public class HomeServlet extends HttpServlet {
             links.put("用户信息", "users");
             links.put("图书管理", "books");
             links.put("借阅管理", "loans/admin");
+            links.put("我的借阅", "loans/mine");
             links.put("借阅统计", "statistics");
             links.put("图书推荐审核", "recommendations/review");
         } else if (user instanceof Operator) {
             links.put("图书管理", "books");
             links.put("借阅办理", "loans");
+            links.put("我的借阅", "loans/mine");
         } else {
             links.put("借阅图书", "books");
             links.put("我的借阅", "loans/mine");

@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -105,6 +106,27 @@ public final class LoanRepository {
                 + "FROM loan l JOIN bookcopy c ON c.id=l.bookCopyId JOIN book b ON b.id=c.bookId JOIN `user` u ON u.id=l.userId "
                 + "WHERE l.userId=?" + (activeOnly ? " AND l.status='未还'" : "") + " ORDER BY l.borrowDate DESC";
         return query(sql, userId);
+    }
+
+    public List<LoanRecord> mine(String userId, boolean activeOnly, LocalDate from, LocalDate to) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT l.id,l.bookCopyId,b.title,u.name,l.borrowDate,l.dueDate,l.returnDate,l.status ")
+                .append("FROM loan l JOIN bookcopy c ON c.id=l.bookCopyId JOIN book b ON b.id=c.bookId JOIN `user` u ON u.id=l.userId WHERE l.userId=?");
+        if (activeOnly) sql.append(" AND l.status IN ('未还','超期')");
+        if (from != null) sql.append(" AND l.borrowDate>=?");
+        if (to != null) sql.append(" AND l.borrowDate<?");
+        sql.append(" ORDER BY l.borrowDate DESC");
+        try (Connection connection = Database.connect(); PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+            int index = 1;
+            statement.setString(index++, userId);
+            if (from != null) statement.setObject(index++, from.atStartOfDay());
+            if (to != null) statement.setObject(index, to.plusDays(1).atStartOfDay());
+            try (ResultSet result = statement.executeQuery()) {
+                List<LoanRecord> rows = new ArrayList<>();
+                while (result.next()) rows.add(new LoanRecord(result.getString(1), result.getString(2), result.getString(3),
+                        result.getString(4), time(result, 5), time(result, 6), time(result, 7), result.getString(8)));
+                return rows;
+            }
+        }
     }
 
     public List<Book> availableBooks() throws SQLException {

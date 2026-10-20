@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@WebServlet(urlPatterns = {"/loans", "/loans/borrow", "/loans/return"})
+@WebServlet(urlPatterns = {"/loans", "/loans/borrow", "/loans/return", "/loans/mine"})
 public class LoansServlet extends HttpServlet {
     private final LoanRepository loans = new LoanRepository();
 
@@ -15,6 +15,10 @@ public class LoansServlet extends HttpServlet {
         User user = (User) request.getSession().getAttribute("user");
         response.setContentType("text/html;charset=UTF-8");
         StringBuilder body = new StringBuilder();
+        if (request.getServletPath().endsWith("mine")) {
+            response.getWriter().write(Page.html(request.getContextPath(), "个人借阅", user, personalPage(request)));
+            return;
+        }
         String message = request.getParameter("message");
         if (message != null) body.append("<p class='notice'>").append(Page.escape(message)).append("</p>");
         try {
@@ -75,5 +79,26 @@ public class LoansServlet extends HttpServlet {
             body.append("</td></tr>");
         }
         return body.append("</tbody></table>").toString();
+    }
+
+    private String personalPage(HttpServletRequest request) {
+        String status = request.getParameter("status");
+        boolean active = "active".equals(status);
+        String fromValue = request.getParameter("from");
+        String toValue = request.getParameter("to");
+        StringBuilder body = new StringBuilder("<form method='get'><label>记录<select name='status'><option value='all'")
+                .append(active ? "" : " selected").append(">全部</option><option value='active'")
+                .append(active ? " selected" : "").append(">未还</option></select></label>")
+                .append("<label>开始日期<input type='date' name='from' value='").append(Page.escape(fromValue)).append("'></label>")
+                .append("<label>结束日期<input type='date' name='to' value='").append(Page.escape(toValue)).append("'></label><button>查询</button></form>");
+        try {
+            java.time.LocalDate from = fromValue == null || fromValue.isBlank() ? null : java.time.LocalDate.parse(fromValue);
+            java.time.LocalDate to = toValue == null || toValue.isBlank() ? null : java.time.LocalDate.parse(toValue);
+            if (from != null && to != null && from.isAfter(to)) return body.append("<p class='error'>开始日期不能晚于结束日期</p>").toString();
+            body.append(table(loans.mine(((User) request.getSession().getAttribute("user")).getId(), active, from, to), true));
+        } catch (Exception e) {
+            body.append("<p class='error'>日期格式不正确或查询失败</p>");
+        }
+        return body.toString();
     }
 }
