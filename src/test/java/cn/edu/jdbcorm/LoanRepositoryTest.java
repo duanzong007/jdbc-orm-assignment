@@ -5,6 +5,13 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class LoanRepositoryTest {
+    @Test void searchesImportedLoansByDateRange() throws Exception {
+        var rows = new LoanRepository().adminSearch("date", null,
+                java.time.LocalDate.of(2026, 6, 1), java.time.LocalDate.of(2026, 6, 30));
+        assertFalse(rows.isEmpty());
+        assertTrue(rows.stream().allMatch(row -> row.borrowDate().getMonthValue() == 6));
+    }
+
     @Test void borrowsAnAvailableCopyAndSetsTheDueDate() throws Exception {
         Student user = new Student();
         user.setName("借阅测试" + java.util.UUID.randomUUID().toString().substring(0, 8));

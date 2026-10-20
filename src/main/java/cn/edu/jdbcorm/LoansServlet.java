@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@WebServlet(urlPatterns = {"/loans", "/loans/borrow", "/loans/return", "/loans/mine"})
+@WebServlet(urlPatterns = {"/loans", "/loans/borrow", "/loans/return", "/loans/mine", "/loans/admin"})
 public class LoansServlet extends HttpServlet {
     private final LoanRepository loans = new LoanRepository();
 
@@ -14,6 +14,11 @@ public class LoansServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         User user = (User) request.getSession().getAttribute("user");
         response.setContentType("text/html;charset=UTF-8");
+        if (request.getServletPath().endsWith("admin")) {
+            if (!(user instanceof Admin)) { response.sendError(HttpServletResponse.SC_FORBIDDEN); return; }
+            response.getWriter().write(Page.html(request.getContextPath(), "借阅记录查询", user, adminPage(request)));
+            return;
+        }
         StringBuilder body = new StringBuilder();
         if (request.getServletPath().endsWith("mine")) {
             response.getWriter().write(Page.html(request.getContextPath(), "个人借阅", user, personalPage(request)));
@@ -100,5 +105,34 @@ public class LoansServlet extends HttpServlet {
             body.append("<p class='error'>日期格式不正确或查询失败</p>");
         }
         return body.toString();
+    }
+
+    private String adminPage(HttpServletRequest request) {
+        String mode = request.getParameter("mode");
+        String keyword = request.getParameter("keyword");
+        String fromValue = request.getParameter("from");
+        String toValue = request.getParameter("to");
+        StringBuilder body = new StringBuilder("<form method='get'><label>查询方式<select name='mode'>")
+                .append(option("keyword", "关键字查询", mode)).append(option("overdue", "超期查询", mode))
+                .append(option("date", "日期范围", mode)).append("</select></label>")
+                .append("<label>关键字<input name='keyword' value='").append(Page.escape(keyword)).append("' placeholder='用户名或书名'></label>")
+                .append("<label>开始日期<input type='date' name='from' value='").append(Page.escape(fromValue)).append("'></label>")
+                .append("<label>结束日期<input type='date' name='to' value='").append(Page.escape(toValue)).append("'></label><button>查询</button></form>");
+        if (mode == null) return body.toString();
+        try {
+            java.time.LocalDate from = fromValue == null || fromValue.isBlank() ? null : java.time.LocalDate.parse(fromValue);
+            java.time.LocalDate to = toValue == null || toValue.isBlank() ? null : java.time.LocalDate.parse(toValue);
+            if ("date".equals(mode) && from != null && to != null && from.isAfter(to)) {
+                return body.append("<p class='error'>开始日期不能晚于结束日期</p>").toString();
+            }
+            body.append(table(loans.adminSearch(mode, keyword, from, to), true));
+        } catch (Exception e) {
+            body.append("<p class='error'>查询条件不正确或读取失败</p>");
+        }
+        return body.toString();
+    }
+
+    private String option(String value, String label, String selected) {
+        return "<option value='" + value + "'" + (value.equals(selected) ? " selected" : "") + ">" + label + "</option>";
     }
 }

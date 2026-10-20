@@ -144,6 +144,34 @@ public final class LoanRepository {
         return query(sql);
     }
 
+    public List<LoanRecord> adminSearch(String mode, String keyword, LocalDate from, LocalDate to) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT l.id,l.bookCopyId,b.title,u.name,l.borrowDate,l.dueDate,l.returnDate,l.status ")
+                .append("FROM loan l JOIN bookcopy c ON c.id=l.bookCopyId JOIN book b ON b.id=c.bookId JOIN `user` u ON u.id=l.userId WHERE 1=1");
+        if ("keyword".equals(mode)) sql.append(" AND (u.name LIKE ? OR b.title LIKE ?)");
+        else if ("overdue".equals(mode)) sql.append(" AND l.returnDate IS NULL AND l.dueDate<NOW() AND (u.name LIKE ? OR b.title LIKE ?)");
+        else if ("date".equals(mode)) {
+            if (from != null) sql.append(" AND l.borrowDate>=?");
+            if (to != null) sql.append(" AND l.borrowDate<?");
+        } else throw new IllegalArgumentException("查询类型不正确");
+        sql.append(" ORDER BY l.borrowDate DESC");
+        try (Connection connection = Database.connect(); PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+            int index = 1;
+            if ("keyword".equals(mode) || "overdue".equals(mode)) {
+                statement.setString(index++, "%" + (keyword == null ? "" : keyword.trim()) + "%");
+                statement.setString(index, "%" + (keyword == null ? "" : keyword.trim()) + "%");
+            } else {
+                if (from != null) statement.setObject(index++, from.atStartOfDay());
+                if (to != null) statement.setObject(index, to.plusDays(1).atStartOfDay());
+            }
+            try (ResultSet result = statement.executeQuery()) {
+                List<LoanRecord> rows = new ArrayList<>();
+                while (result.next()) rows.add(new LoanRecord(result.getString(1), result.getString(2), result.getString(3),
+                        result.getString(4), time(result, 5), time(result, 6), time(result, 7), result.getString(8)));
+                return rows;
+            }
+        }
+    }
+
     private List<LoanRecord> query(String sql, String value) throws SQLException {
         try (Connection connection = Database.connect(); PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, value);
